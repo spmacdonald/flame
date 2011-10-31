@@ -128,7 +128,7 @@ void applyCamera(float[] p)
   // p[0] *= zoom;
   // p[1] *= zoom;
 
-  theta += 0.000001;
+  theta += 0.00000001;
   float x, y;
   x = p[0] * cos(theta) - p[1] * sin(theta);
   y = p[0] * sin(theta) + p[1] * cos(theta);
