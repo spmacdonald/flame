@@ -1,4 +1,4 @@
-int numIter = 10000000;
+int numIter = 100000000;
 
 float xMin = 10*(-0.5);
 float xMax = 10*(0.5);
@@ -32,7 +32,7 @@ void draw()
   {
     if (random(1.0) < 0.5)
     {
-      c = .9;
+      c = .5;
       x = 0.164856 * p[0] - 0.775017 * p[1] - 0.400526;
       y = 0.664133 * p[0] + 0.504859 * p[1] + 0.155692;
       p[0] = x;
@@ -66,6 +66,7 @@ void draw()
   // Apply final transformation
 
   renderImage(imgData);
+  save("flame.png");
 }
 
 void renderImage(float[][][] imgData)
@@ -127,12 +128,12 @@ void applyCamera(float[] p)
   // p[0] *= zoom;
   // p[1] *= zoom;
 
-  // theta += 0.000001;
-  // float x, y;
-  // x = p[0] * cos(theta) - p[1] * sin(theta);
-  // y = p[0] * sin(theta) + p[1] * cos(theta);
-  // p[0] = x;
-  // p[1] = y;
+  theta += 0.000001;
+  float x, y;
+  x = p[0] * cos(theta) - p[1] * sin(theta);
+  y = p[0] * sin(theta) + p[1] * cos(theta);
+  p[0] = x;
+  p[1] = y;
 }
 
 float[] randomPoint()
