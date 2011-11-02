@@ -1,4 +1,5 @@
-int numIter = 100000000;
+int numIter = 1000000;
+int ss = 3;
 
 float xMin = 10*(-0.5);
 float xMax = 10*(0.5);
@@ -14,8 +15,8 @@ float theta = 0;
 void setup()
 {
   size(1000, 1000, P2D);
-  imgData = new float[width][height][4];
-  clrData = new float[width][height];
+  imgData = new float[ss*width][ss*height][4];
+  clrData = new float[ss*width][ss*height];
   flameColors = new color[256];
   createPalette(flameColors);
   loadPixels();
@@ -26,8 +27,10 @@ void setup()
 void draw()
 {
   float x, y, c;
-  float[] p = randomPoint();
+  float[] p;
+  float[] renderPoint;
 
+  p = randomPoint();
   for (int i = 0; i < numIter; i++)
   {
     if (random(1.0) < 0.5)
@@ -47,9 +50,10 @@ void draw()
       p[1] = y;
     }
 
-    applyCamera(p);
+    renderPoint = p;
+    // applyPostTransform(renderPoint);
 
-    int[] z = pointToImageCoord(p);
+    int[] z = pointToImageCoord(renderPoint);
     if (z != null && i > 100)
     {
       int m = z[0];
@@ -71,17 +75,41 @@ void draw()
 
 void renderImage(float[][][] imgData)
 {
-  float maxFreq = getMaxFreq(imgData);
+  float red, green, blue, freq;
+  float[][][] smoothedData = new float[width][height][4];
+
+  for (int i = ss; i < ss*width-ss; i++)
+  {
+    for (int j = ss; j < ss*height-ss; j++)
+    {
+      red = green = blue = freq = 0;
+      for (int k = -ss; k < ss; k++)
+      {
+        freq += imgData[i+k][j+k][0];
+        red += imgData[i+k][j+k][1];
+        green += imgData[i+k][j+k][2];
+        blue += imgData[i+k][j+k][3];
+      }
+      smoothedData[i/ss][j/ss][0] = freq / (ss * ss);
+      smoothedData[i/ss][j/ss][1] = red / (ss * ss);
+      smoothedData[i/ss][j/ss][2] = green / (ss * ss);
+      smoothedData[i/ss][j/ss][3] = blue / (ss * ss);
+    }
+  }
+
+  float maxFreq = getMaxFreq(smoothedData);
+  float alpha;
 
   for (int i = 0; i < width; i++)
   {
     for (int j = 0; j < height; j++)
     {
-      if (imgData[i][j][0] > 0)
+      if (smoothedData[i][j][0] > 0)
       {
-        float red = imgData[i][j][1] * (imgData[i][j][0] / maxFreq);
-        float green = imgData[i][j][2] * (imgData[i][j][0] / maxFreq);
-        float blue = imgData[i][j][3] * (imgData[i][j][0] / maxFreq);
+        alpha = pow(log(smoothedData[i][j][0]) / log(maxFreq), 1.0 / 2.2);
+        red = alpha * smoothedData[i][j][1] * (smoothedData[i][j][0] / maxFreq);
+        green = alpha * smoothedData[i][j][2] * (smoothedData[i][j][0] / maxFreq);
+        blue = alpha * smoothedData[i][j][3] * (smoothedData[i][j][0] / maxFreq);
         pixels[i + j * width] = color(red, green, blue);
       }
     }
@@ -122,11 +150,11 @@ float getMaxFreq(float[][][] imgData)
   return max;
 }
 
-void applyCamera(float[] p)
+void applyPostTransform(float[] p)
 {
-  // float zoom = 1.05;
-  // p[0] *= zoom;
-  // p[1] *= zoom;
+  float zoom = 1.25;
+  p[0] *= zoom;
+  p[1] *= zoom;
 
   theta += 0.00000001;
   float x, y;
@@ -147,10 +175,10 @@ float[] randomPoint()
 int[] pointToImageCoord(float[] inPoint)
 {
   int[] outPoint = new int[2];
-  outPoint[0] = (int)(width * (inPoint[0] - xMin) / (xMax - xMin));
-  outPoint[1] = (int)(height * (inPoint[1] - yMin) / (yMax - yMin));
+  outPoint[0] = (int)(ss*width * (inPoint[0] - xMin) / (xMax - xMin));
+  outPoint[1] = (int)(ss*height * (inPoint[1] - yMin) / (yMax - yMin));
 
-  if (outPoint[0] >= 0 && outPoint[0] < width && outPoint[1] >= 0 && outPoint[1] < height)
+  if (outPoint[0] >= 0 && outPoint[0] < ss*width && outPoint[1] >= 0 && outPoint[1] < ss*height)
   {
     return outPoint;
   }
