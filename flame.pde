@@ -1,20 +1,23 @@
-int numIter = 1000000;
-int ss = 3;
+int quality = 28;
+int ss = 5;
 
-float xMin = 10*(-0.5);
-float xMax = 10*(0.5);
-float yMin = 10*(-0.5);
-float yMax = 10*(0.5);
+float xMin = -5;
+float xMax = 5;
+float yMin = -5;
+float yMax = 5;
 
+int numIter;
 float[][][] imgData;
 float[][] clrData;
 color[] flameColors;
 
-float theta = 0;
+float gammainv = 1.0 / 7.3;
+float theta;
 
 void setup()
 {
-  size(1000, 1000, P2D);
+  size(1500, 1500, P2D);
+  numIter = quality * width * height;
   imgData = new float[ss*width][ss*height][4];
   clrData = new float[ss*width][ss*height];
   flameColors = new color[256];
@@ -26,22 +29,23 @@ void setup()
 
 void draw()
 {
-  float x, y, c;
+  float x, y, c, r;
   float[] p;
   float[] renderPoint;
 
   p = randomPoint();
   for (int i = 0; i < numIter; i++)
   {
-    if (random(1.0) < 0.5)
+    r = random(1.0);
+    if (r < 0.2)
     {
-      c = .5;
+      c = 0.5;
       x = 0.164856 * p[0] - 0.775017 * p[1] - 0.400526;
       y = 0.664133 * p[0] + 0.504859 * p[1] + 0.155692;
       p[0] = x;
       p[1] = y;
     }
-    else
+    else if (r >= 0.2 && r < 0.8)
     {
       c = 0.33;
       x = -0.14321 * p[0] - 0.540632 * p[1] + 2.14451;
@@ -49,9 +53,17 @@ void draw()
       p[0] = x;
       p[1] = y;
     }
+    else
+    {
+      c = 0.9;
+      x = 0.14321 * p[0] + 0.540632 * p[1] - 2.14451;
+      y = -0.427958 * p[0] - 0.0901299 * p[1] - 2.54161;
+      p[0] = x;
+      p[1] = y;
+    }
 
     renderPoint = p;
-    // applyPostTransform(renderPoint);
+    applyPostTransform(renderPoint);
 
     int[] z = pointToImageCoord(renderPoint);
     if (z != null && i > 100)
@@ -67,15 +79,13 @@ void draw()
     }
   }
 
-  // Apply final transformation
-
   renderImage(imgData);
   save("flame.png");
 }
 
 void renderImage(float[][][] imgData)
 {
-  float red, green, blue, freq;
+  float red, green, blue, freq, alpha;
   float[][][] smoothedData = new float[width][height][4];
 
   for (int i = ss; i < ss*width-ss; i++)
@@ -98,7 +108,6 @@ void renderImage(float[][][] imgData)
   }
 
   float maxFreq = getMaxFreq(smoothedData);
-  float alpha;
 
   for (int i = 0; i < width; i++)
   {
@@ -106,11 +115,15 @@ void renderImage(float[][][] imgData)
     {
       if (smoothedData[i][j][0] > 0)
       {
-        alpha = pow(log(smoothedData[i][j][0]) / log(maxFreq), 1.0 / 2.2);
-        red = alpha * smoothedData[i][j][1] * (smoothedData[i][j][0] / maxFreq);
-        green = alpha * smoothedData[i][j][2] * (smoothedData[i][j][0] / maxFreq);
-        blue = alpha * smoothedData[i][j][3] * (smoothedData[i][j][0] / maxFreq);
+        alpha = pow(log(smoothedData[i][j][0] + 1) / log(maxFreq + 1), gammainv);
+        red = min(alpha * smoothedData[i][j][1], 255);
+        green = alpha * smoothedData[i][j][2];
+        blue = alpha * smoothedData[i][j][3];
         pixels[i + j * width] = color(red, green, blue);
+      }
+      else
+      {
+        pixels[i + j * width] = color(0, 0, 0);
       }
     }
   }
@@ -157,9 +170,8 @@ void applyPostTransform(float[] p)
   p[1] *= zoom;
 
   theta += 0.00000001;
-  float x, y;
-  x = p[0] * cos(theta) - p[1] * sin(theta);
-  y = p[0] * sin(theta) + p[1] * cos(theta);
+  float x = p[0] * cos(theta) - p[1] * sin(theta);
+  float y = p[0] * sin(theta) + p[1] * cos(theta);
   p[0] = x;
   p[1] = y;
 }
