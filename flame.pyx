@@ -34,9 +34,9 @@ def render_fractal(np.ndarray[np.uint8_t, ndim=3] pixels,
                    np.ndarray[np.uint32_t, ndim=2] counts,
                    np.ndarray[np.float64_t, ndim=2] maps,
                    np.ndarray[np.uint8_t, ndim=2] colors,
-                   int width,
                    int height,
-                   int max_iter):
+                   int width,
+                   long max_iter):
 
     cdef:
         double x, y, _x, r, g, b

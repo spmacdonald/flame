@@ -1,3 +1,5 @@
+import os
+import json
 from random import randint
 
 import png
@@ -68,27 +70,76 @@ def generate_transformations(n):
     return transformations
 
 
-height = 500
-width = 500
-max_iter = 10000000
-n = randint(4, 7)
+def composite_black_background(src):
+    alpha = np.index_exp[:, :, 3:]
+    rgb = np.index_exp[:, :, :3]
+    src_a = src[alpha] / 255.0
+    src[alpha] = 255
+    src[rgb] *= src_a
+    np.clip(src, 0, 255)
 
-pixels = np.zeros((width, height, 4), dtype=np.uint8)
-counts = np.zeros((width, height), dtype=np.uint32)
+    return src
 
-colors = generate_palette(n)
-maps = generate_transformations(n)
 
-pixels = render_fractal(pixels, counts, maps, colors, width, height, max_iter)
+def write_parameters(fname, colors, maps):
+    with open(fname, 'w') as f:
+        parameters = {'colors': colors.tolist(), 'maps': maps.tolist()}
+        json.dump(parameters, f)
 
-# Composite pixels with a black background. See
-# http://en.wikipedia.org/wiki/Alpha_compositing
-alpha = np.index_exp[:, :, 3:]
-rgb = np.index_exp[:, :, :3]
-src_a = pixels[alpha] / 255.0
-pixels[alpha] = 255
-pixels[rgb] *= src_a
-np.clip(pixels, 0, 255)
 
-writer = png.Writer(width=width, height=height, alpha=True)
-writer.write(open('image1.png', 'w'), pixels.reshape(-1, width * 4))
+def read_parameters(fname):
+    with open(fname) as f:
+        parameters = json.load(f)
+
+    return {'maps': np.array(parameters['maps']),
+            'colors': np.array(parameters['colors'], dtype=np.uint8)}
+
+
+def search_fractals(height, width, quality, out_dir='/Volumes/internal/Datasets/flames', num=1000):
+
+    max_iter = width * height * quality
+
+    for i in range(num):
+        n = randint(4, 10)
+
+        pixels = np.zeros((height, width, 4), dtype=np.uint8)
+        counts = np.zeros((height, width), dtype=np.uint32)
+
+        colors = generate_palette(n)
+        maps = generate_transformations(n)
+
+        write_parameters(os.path.join(out_dir, '{0}.txt'.format(i)), colors, maps)
+
+        pixels = render_fractal(pixels, counts, maps, colors, height, width, max_iter)
+        pixels = composite_black_background(pixels)
+
+        writer = png.Writer(width=width, height=height, alpha=True)
+        writer.write(open(os.path.join(out_dir, '{0}.png'.format(i)), 'w'), pixels.reshape(-1, width * 4))
+
+
+def generate_fractal(number, height=3000, width=3000, quality=30, out_dir='/Volumes/internal/Datasets/flames'):
+
+    parameters = read_parameters(os.path.join(out_dir, '{0}.txt'.format(number)))
+    colors = parameters['colors']
+    maps = parameters['maps']
+
+    max_iter = width * height * quality
+
+    pixels = np.zeros((height, width, 4), dtype=np.uint8)
+    counts = np.zeros((height, width), dtype=np.uint32)
+
+    pixels = render_fractal(pixels, counts, maps, colors, height, width, max_iter)
+    pixels = composite_black_background(pixels)
+
+    writer = png.Writer(width=width, height=height, alpha=True)
+    writer.write(open('{0}_high_quality.png'.format(number), 'w'), pixels.reshape(-1, width * 4))
+
+
+if __name__ == '__main__':
+
+    # width = 500
+    # height = 500
+    # quality = 30
+    # search_fractals(height, width, quality)
+
+    generate_fractal(1)
